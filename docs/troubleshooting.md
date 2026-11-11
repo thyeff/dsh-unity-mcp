@@ -7,7 +7,8 @@
 - [ ] 确认 Unity 编辑器**已打开且加载了项目**（网桥跑在编辑器进程内，关着 ⇒ 必然失败）
 - [ ] 确认项目已装入网桥包：`Packages/manifest.json` 含 `com.gamelovers.mcp-unity`
 - [ ] 确认网桥已启动监听：编辑器内菜单 **GameLovers → MCP Unity → Start**（或自动启动）
-- [ ] 确认端口是 8090（默认）；被占用时换端口，并同步改插件 `config.env.MCP_UNITY_PORT`
+- [ ] 确认端口是 8090（默认）；被占用时在 Unity 网桥设置中更改，并通过插件 `config.env.UNITY_PORT` 覆盖（服务端也读取 `ProjectSettings/McpUnitySettings.json`）
+- [ ] `unity_status` 做 WebSocket 握手而非普通 TCP 检查；握手成功只证明端点接受 WebSocket，不保证 MCP 工具调用或编辑器操作正常
 
 ## 症状 2：工具列表里根本没有 unity 工具
 

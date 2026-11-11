@@ -1,6 +1,6 @@
 # dsh-unity-mcp
 
-> **让 DSH 里的 AI Agent 直接操控 Unity 编辑器** —— 安装即用，34 个工具覆盖游戏开发全流程。
+> **让 DSH 里的 AI Agent 直接操控 Unity 编辑器** —— 内置 mcp-unity 1.4.0 服务端，提供 34 个 Unity 工具。
 > One-shot integration that gives DSH agents direct control over the Unity Editor.
 
 简体中文文档 · [功能特性](#功能特性) · [安装](#安装) · [进阶玩法](#进阶与-dsh-mcp-lens-渐进披露搭配省-token) · [常见问题](#常见问题faq)
@@ -12,7 +12,7 @@
 ## 工作原理
 
 ```
-DSH Agent ──MCP(stdio)──> dsh-unity-mcp ──> 内置 mcp-unity 服务端 ──TCP :8090──> Unity 网桥包（编辑器进程内）
+DSH Agent ──MCP(stdio)──> dsh-unity-mcp ──> 内置 mcp-unity 服务端 ──WebSocket :8090──> Unity 网桥包（编辑器进程内）
 ```
 
 DSH 侧安装本插件、Unity 侧在项目里安装网桥包（`com.gamelovers.mcp-unity`），中间链路全部自动建立，无需手动配置。
@@ -27,7 +27,7 @@ DSH 侧安装本插件、Unity 侧在项目里安装网桥包（`com.gamelovers.
 
 - **零配置接入**：安装插件即自动注册 MCP 服务端，无需手写任何配置
 - **34 个 Unity 工具**：场景管理、GameObject 增删改查、组件/材质操作、Prefab、菜单执行、测试运行、控制台日志读取等
-- **网桥诊断（v1.1）**：本地工具 `unity_status` 先探后调——TCP 探测 Unity 网桥是否在线，Unity 未启动时 Agent 秒级知道，不再干等 60 秒超时
+- **网桥诊断（v1.1）**：本地工具 `unity_status` 尝试 WebSocket 握手并报告目标来源；握手成功不代表 MCP 会话或 Unity 操作已验证
 - **配置校验（v1.1）**：超时等数值配置带 schema 校验，非法值在加载期直接报错，不会悄悄注销工具
 - **自动重连**：Unity 编辑器重启后自动恢复连接（指数退避，最多 10 次）
 - **中文文档**：本 README 即完整使用说明
@@ -38,9 +38,9 @@ DSH 侧安装本插件、Unity 侧在项目里安装网桥包（`com.gamelovers.
 
 | 组件 | 要求 |
 |------|------|
-| DeepSeek Harness | DSH Desktop 或 DSH CLI（核心包 0.1.1-rc.2 及以上） |
+| DeepSeek Harness | DSH Desktop 或 CLI，需提供 `@deepseek-ai/dsh-mcp-client` / `@deepseek-ai/dsh-tools` 0.2.2-rc.1 兼容 API（已对照 DSH NEXT v2.0.22-next；peer 范围限定在 0.2.x） |
 | Unity | 2022.3 及以上（推荐 Unity 6） |
-| Node.js | 无需单独安装（使用 Harness 自带运行时） |
+| Node.js | Harness 自带或外部 runtime 均需 >= 24.9.0 |
 
 ## 安装
 
@@ -73,7 +73,9 @@ dsh plugin --profile web add git+https://github.com/thyeff/dsh-unity-mcp.git
 
    > 先检查 Unity 网桥状态，再看当前场景层级
 
-   Agent 先调 `unity_status`（网桥可达即接入成功），再调 `mcp__unity__get_scenes_hierarchy` 返回场景树。
+   Agent 可先调 `unity_status` 检查 WebSocket 握手（成功并不等于 MCP 会话或编辑器操作已验证），再调 `mcp__unity__get_scenes_hierarchy` 验证真实场景数据。
+
+Unity MCP 工具能够修改项目状态。对删除、覆盖、脚本执行、重编译等有破坏性或副作用的操作，应先让用户确认，并在版本控制、可回滚的项目副本中使用。插件目前没有工具级只读/白名单/二次审批保护，请使用 DSH 的工具授权策略。
 
 ## 可选配置
 
@@ -83,17 +85,18 @@ dsh plugin --profile web add git+https://github.com/thyeff/dsh-unity-mcp.git
 - id: unity-mcp
   config:
     serverName: unity          # MCP 工具命名空间，默认 unity
-    toolCallTimeoutMs: 60000   # 单次工具调用超时，默认 60 秒（必须 > 0）
-    probeTimeoutMs: 2000       # unity_status 探测网桥的超时，默认 2 秒（必须 ≥ 100）
+    nodePath: 'C:\\path\\to\\node.exe' # 可选；省略时使用当前 DSH runtime
+    toolCallTimeoutMs: 60000   # 单次工具调用超时，范围 1..2147483647 ms
+    probeTimeoutMs: 2000       # unity_status WebSocket 握手超时，范围 100..2147483647 ms
     env:                       # 传给服务端进程的额外环境变量
-      UNITY_PORT: '8090'       # 自定义 Unity 网桥端口（默认 8090，unity_status 同步探测此端口）
-      UNITY_HOST: 'localhost'  # 自定义网桥地址（默认 localhost）
+      UNITY_PORT: '8090'       # 覆盖项目设置中的端口
+      UNITY_HOST: 'localhost'  # 覆盖项目设置中的地址
     reconnect:                 # 重连策略（默认指数退避，1s 起、30s 封顶、10 次）
       enabled: true
-      maxAttempts: 10
+      maxAttempts: 10           # 正整数；各延迟同为 1..2147483647 ms
 ```
 
-非法值（如 `toolCallTimeoutMs: 0`）会在插件加载期被 schema 直接拒绝并报错，而不是让工具静默失效。
+非法值（如 `toolCallTimeoutMs: 0`、非整数 `maxAttempts` 或无效 `serverName`）会在插件加载期被 schema 拒绝。地址优先级与 vendored mcp-unity 一致：`UNITY_HOST` / `UNITY_PORT` > `MCP_UNITY_SETTINGS_PATH` 指定文件或服务端模块祖先中的 `ProjectSettings/McpUnitySettings.json` > `localhost:8090`。省略 `nodePath` 时使用当前 DSH Node runtime。
 
 > patch 是 profile 的 `cordis.patch.yml` 顶层列表（不要包在 `patches:` 里）；示例中的 `serverName` 等均可省略，省略即用默认值。
 

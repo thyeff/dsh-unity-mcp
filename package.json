@@ -10,10 +10,12 @@
     "type": "git",
     "url": "https://github.com/thyeff/dsh-unity-mcp.git"
   },
+  "packageManager": "pnpm@11.28.5",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.9.0"
   },
   "scripts": {
+    "test": "node --test",
     "smoke": "node scripts/smoke.mjs vendor",
     "smoke:install": "node scripts/smoke.mjs"
   },
@@ -23,7 +25,7 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-mcp-client": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-mcp-client": "^0.2.2-rc.1",
     "@modelcontextprotocol/ext-apps": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.7.0",
     "axios": "^1.8.4",
@@ -36,7 +38,7 @@
     "zod-to-json-schema": "^3.24.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "^0.1.1-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.2.2-rc.1",
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "keywords": [
@@ -52,6 +54,7 @@
   "files": [
     "lib",
     "vendor",
+    "scripts",
     "cordis.patch.yml",
     "README.md",
     "CHANGELOG.md",

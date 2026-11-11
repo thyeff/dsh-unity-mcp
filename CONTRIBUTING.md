@@ -25,15 +25,16 @@ dsh plugin --profile web install "file:./"
 ## 升级内置服务端（Upgrading the vendored server）
 
 1. 从上游 [CoderGamester/mcp-unity](https://github.com/CoderGamester/mcp-unity) 拉取最新构建到
-   `vendor/mcp-unity-server/build/`，并同步 `vendor/mcp-unity-server/LICENSE.md`。
-2. 如有新运行时依赖，同步更新 `package.json` 的 `dependencies`。
-3. 在 CHANGELOG 记一笔，`npm run smoke:install` 验证工具清单。
-4. bump 版本并打新 Release。
+   `vendor/mcp-unity-server/build/`，同步 `vendor/mcp-unity-server/LICENSE.md`，并记录准确的上游 tag/commit 与许可证。
+2. 对比上游 package manifest，审阅新增/移除依赖和行为变更；同步更新 `package.json`，避免盲目升级 vendored 构建。
+3. 更新 CHANGELOG，运行 `npm test`、`npm run smoke -- vendor`、`npm run smoke:install`，并从生成的 tarball 安装后运行 smoke。
+4. 在目标 DSH Desktop/CLI 版本验证插件加载、工具注册、一次只读与一次可回滚写操作；再用隔离 Unity 项目验证真实 WebSocket/MCP 工具链。缺少宿主或 Unity 环境时，明确记录为未验证。
+5. bump 版本并打新 Release。
 
 ## 提交流程（Contributing flow）
 
 1. 新建分支提交改动，遵循 [Conventional Commits](https://www.conventionalcommits.org/)。
-2. 确保 `npm ci` 后的 CI 步骤全部通过（见 `.github/workflows/ci.yml`，本地可手动跑同样命令）。
+2. 确保 Node.js 24.9.0+ 与 pnpm 11.28.5 下 `pnpm install --config.auto-install-peers=false` 后 CI 步骤全部通过（见 `.github/workflows/ci.yml`，本地可手动跑同样命令）。
 3. 开 PR，给出动机与验证方式（本地安装测试 / 烟雾测试输出）。
 
 ## 行为准则（Code of Conduct）

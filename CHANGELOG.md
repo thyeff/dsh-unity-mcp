@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-（暂无计划项）
+### Changed
+
+- Require Node.js >=24.9.0 and DSH MCP client/tools 0.2.2-rc.1-compatible APIs.
+- Resolve Unity host/port from the same environment and project settings sources as the vendored server; `unity_status` now performs a WebSocket handshake and states its limited scope.
+- Validate server namespaces and timer/reconnect values, and expose the supported `nodePath` config.
+- Include the smoke script in npm package files; CI now runs unit tests, stdio smoke, and a packed-install smoke on Node 24.
+- Document destructive Unity operations and the absence of plugin-enforced read-only/approval controls.
+
 
 ## [1.1.0] - 2026-09-03
 
